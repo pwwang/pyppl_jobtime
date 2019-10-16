@@ -11,8 +11,6 @@ license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/pwwang/pyppl_jobtime"
 repository = "https://github.com/pwwang/pyppl_jobtime"
-[[tool.poetry.packages]]
-include = "pyppl_jobtime"
 
 [tool.poetry.dependencies]
 python = "^3.6"
