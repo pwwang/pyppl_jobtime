@@ -36,6 +36,5 @@ pyppl jobtime -proc pVcfFix -outfile profile.png
     ```shell
     pyppl jobtime -proc pVcfFix -outfile violin.png -plottype violin
     ```
-    ![violin.png](./images/violin.png)
 
     ![procnames.png](./images/procnames.png)
