@@ -48,14 +48,14 @@ def _to_r(var, ignoreintkey = True):
 		if var.upper() == 'FALSE':
 			return 'FALSE'
 		if var.upper() == 'NA' or var.upper() == 'NULL':
-			return var
+			return var.upper()
 		if var.startswith('r:') or var.startswith('R:'):
 			return str(var)[2:]
 		return repr(str(var))
 	if isinstance(var, Path):
 		return repr(str(var))
 	if isinstance(var, (list, tuple, set)):
-		return 'c({})'.format(','.join([R(i) for i in var]))
+		return 'c({})'.format(','.join([_to_r(i) for i in var]))
 	if isinstance(var, dict):
 		# list allow repeated names
 		return 'list({})'.format(','.join([

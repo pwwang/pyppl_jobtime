@@ -25,7 +25,9 @@ pyppl jobtime --proc pVcfFix --outfile profile.png
 
 - Changing process names:
     ```shell
-    pyppl jobtime --outfile procnames.png --proc pVcfFix --ggs.scale_x_discrete:dict --ggs.scale_x_discrete.labels:list A B C
+    pyppl jobtime --outfile procnames.png \
+        --proc pVcfFix --ggs.scale_x_discrete:dict \
+        --ggs.scale_x_discrete.labels:list A B C
     ```
 
     ![procnames.png](./images/procnames.png)
