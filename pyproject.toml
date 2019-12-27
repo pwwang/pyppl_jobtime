@@ -4,7 +4,7 @@ build-backend = "poetry.masonry.api"
 
 [tool.poetry]
 name = "pyppl_jobtime"
-version = "0.0.1"
+version = "0.0.2"
 description = "Job running time statistics for PyPPL"
 authors = [ "pwwang <pwwang@pwwang.com>",]
 license = "MIT"
@@ -20,3 +20,6 @@ cmdy = "*"
 [tool.poetry.dev-dependencies]
 pytest = "*"
 pytest-cov = "*"
+
+[tool.poetry.plugins.pyppl]
+pyppl_jobtime = "pyppl_jobtime"

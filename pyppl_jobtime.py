@@ -4,14 +4,12 @@ import sys
 from pathlib import Path
 import cmdy
 from pyppl.plugin import hookimpl
-from pyppl.logger import Logger
-from pyppl.template import _TemplateFilter
+from pyppl.logger import logger
 
-__version__ = "0.0.1"
-logger = Logger(name = 'pyppl_jobtime')
+__version__ = "0.0.2"
 
 @hookimpl
-def cliAddCommand(commands):
+def cli_addcmd(commands):
 	commands.jobtime                  = 'Profiling/Ploting job running time.'
 	commands.jobtime.wdir             = commands.list.wdir
 	commands.jobtime.unit             = 'second' # s/sec/seconds/m/min/minute/minutes/h/hour
@@ -32,6 +30,43 @@ def cliAddCommand(commands):
 	commands.jobtime.proc.required    = True
 	commands.jobtime.proc.desc        = 'The processes, if tag or suffix not specified, will include all matched processes.'
 
+def _to_r(var, ignoreintkey = True):
+	"""Convert a value into R values"""
+	if var is True:
+		return 'TRUE'
+	if var is False:
+		return 'FALSE'
+	if var is None:
+		return 'NULL'
+	if isinstance(var, str):
+		if var.upper() in ['+INF', 'INF']:
+			return 'Inf'
+		if var.upper() == '-INF':
+			return '-Inf'
+		if var.upper() == 'TRUE':
+			return 'TRUE'
+		if var.upper() == 'FALSE':
+			return 'FALSE'
+		if var.upper() == 'NA' or var.upper() == 'NULL':
+			return var
+		if var.startswith('r:') or var.startswith('R:'):
+			return str(var)[2:]
+		return repr(str(var))
+	if isinstance(var, Path):
+		return repr(str(var))
+	if isinstance(var, (list, tuple, set)):
+		return 'c({})'.format(','.join([R(i) for i in var]))
+	if isinstance(var, dict):
+		# list allow repeated names
+		return 'list({})'.format(','.join([
+			'`{0}`={1}'.format(
+				k,
+				_to_r(v)) if isinstance(k, int) and not ignoreintkey else \
+				_to_r(v) if isinstance(k, int) and ignoreintkey else \
+				'`{0}`={1}'.format(str(k).split('#')[0], _to_r(v))
+			for k, v in sorted(var.items())]))
+	return repr(var)
+
 def _gettimes(workdir):
 	logger.info('Collecting running time data in {} ...'.format(workdir.name))
 	for jobdir in workdir.glob('*'):
@@ -40,9 +75,9 @@ def _gettimes(workdir):
 		timefile = jobdir / 'job.time'
 		if not timefile.is_file():
 			raise ValueError('Pipeline was not running with pyppl_jobtime plugin enabled.')
-		yield float(timefile.read_text())
+		yield float(timefile.read_text().splitlines()[0].split(' ')[1])
 
-def _timesToRdata(times, unit):
+def _times_to_rdata(times, unit):
 	logger.info('Converting running times into table ...')
 	procs = [proc[6:] for proc in sorted(times.keys())] # remove PyPPL.
 	# see if all stem names are different
@@ -67,8 +102,8 @@ def _timesToRdata(times, unit):
 			ret.append('{proc}\t{rtime}'.format(proc = nproc, rtime = rtime))
 	return '\n'.join(ret) + '\n'
 
-def _composeRCode(times, opts):
-	datastr = _timesToRdata(times, opts.unit)
+def _compose_rcode(times, opts):
+	datastr = _times_to_rdata(times, opts.unit)
 	logger.info('Composing R code ...')
 	rcode = """
 require('ggplot2')
@@ -98,18 +133,18 @@ dev.off()
 			devpars  = opts.devpars,
 			outfile  = opts.outfile,
 			unit     = opts.unit,
-			show     = _TemplateFilter.R(opts.show),
-			ggs      = _TemplateFilter.Rlist(opts.ggs),
+			show     = _to_r(opts.show),
+			ggs      = _to_r(opts.ggs),
 			plottype = opts.plottype)
 	return rcode
 
 def _plotTimes(times, opts):
-	rcode = _composeRCode(times, opts)
+	rcode = _compose_rcode(times, opts)
 	logger.info("Plotting results ...")
 	cmdy.echo(rcode, _pipe = True) | cmdy.Rscript('-', _exe = opts.Rscript, _fg = True)
 
 @hookimpl
-def cliExecCommand(command, opts):
+def cli_execcmd(command, opts):
 	if command == 'jobtime':
 		wdir  = Path(opts.wdir)
 		proc  = opts.proc if opts.proc.startswith('PyPPL.') else 'PyPPL.' + opts.proc
@@ -122,13 +157,6 @@ def cliExecCommand(command, opts):
 		_plotTimes(times, opts)
 
 @hookimpl
-def jobPreRun(job):
-	# add hook to save the running time
-	# avoid modifying for other jobs
-	config = job.config.copy()
-
-	config['preScript']  = '\n'.join([config.get('preScript', ''), 'TIC=$(date +%s.%3N)'])
-	config['postScript'] = '\n'.join([
-		'echo $(date +%s.%3N) - $TIC | bc > {!r}'.format(str(job.dir / 'job.time')),
-		config.get('postScript', '')])
-	job.config = config
+def job_prebuild(job):
+	"""add hook to save the running time"""
+	job.__attrs_property_cached__['script'] = ['exec', 'time', '-o', job.dir / 'job.time', '-p'] + job.script
