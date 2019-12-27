@@ -1,6 +1,5 @@
 """Job running time statistics for PyPPL"""
 # pylint: disable=invalid-name
-import sys
 from pathlib import Path
 import cmdy
 from pyppl.plugin import hookimpl
@@ -10,6 +9,7 @@ __version__ = "0.0.2"
 
 @hookimpl
 def cli_addcmd(commands):
+	"""Add jobtime command to pyppl."""
 	commands.jobtime                  = 'Profiling/Ploting job running time.'
 	commands.jobtime.wdir             = commands.list.wdir
 	commands.jobtime.unit             = 'second' # s/sec/seconds/m/min/minute/minutes/h/hour
@@ -28,32 +28,27 @@ def cli_addcmd(commands):
 	commands.jobtime.outfile.desc     = 'The output figure file.'
 	commands.jobtime.unit.callback    = lambda opt: opt.setValue(opt.value[0])
 	commands.jobtime.proc.required    = True
-	commands.jobtime.proc.desc        = 'The processes, if tag or suffix not specified, will include all matched processes.'
+	commands.jobtime.proc.desc        = 'The processes, if tag or suffix not specified, ' + \
+		'will include all matched processes.'
 
 def _to_r(var, ignoreintkey = True):
 	"""Convert a value into R values"""
-	if var is True:
-		return 'TRUE'
-	if var is False:
-		return 'FALSE'
 	if var is None:
 		return 'NULL'
-	if isinstance(var, str):
+	if var in (True, False):
+		return str(var).upper()
+	if isinstance(var, (Path, str)):
+		var = str(var)
 		if var.upper() in ['+INF', 'INF']:
 			return 'Inf'
 		if var.upper() == '-INF':
 			return '-Inf'
-		if var.upper() == 'TRUE':
-			return 'TRUE'
-		if var.upper() == 'FALSE':
-			return 'FALSE'
-		if var.upper() == 'NA' or var.upper() == 'NULL':
+		if var.upper() == 'NA' or var.upper() == 'NULL' or \
+			var.upper() == 'TRUE' or var.upper() == 'FALSE':
 			return var.upper()
 		if var.startswith('r:') or var.startswith('R:'):
-			return str(var)[2:]
-		return repr(str(var))
-	if isinstance(var, Path):
-		return repr(str(var))
+			return var[2:]
+		return repr(var)
 	if isinstance(var, (list, tuple, set)):
 		return 'c({})'.format(','.join([_to_r(i) for i in var]))
 	if isinstance(var, dict):
@@ -145,6 +140,7 @@ def _plotTimes(times, opts):
 
 @hookimpl
 def cli_execcmd(command, opts):
+	"""Execute the command"""
 	if command == 'jobtime':
 		wdir  = Path(opts.wdir)
 		proc  = opts.proc if opts.proc.startswith('PyPPL.') else 'PyPPL.' + opts.proc
@@ -159,4 +155,5 @@ def cli_execcmd(command, opts):
 @hookimpl
 def job_prebuild(job):
 	"""add hook to save the running time"""
-	job.__attrs_property_cached__['script'] = ['exec', 'time', '-o', job.dir / 'job.time', '-p'] + job.script
+	job.__attrs_property_cached__['script'] = [
+		'exec', 'time', '-o', job.dir / 'job.time', '-p'] + job.script
