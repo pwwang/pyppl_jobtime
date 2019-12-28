@@ -2,8 +2,8 @@ import sys
 from pathlib import Path
 import cmdy
 import pytest
-import pyppl_jobtime
 from pyppl import config_plugins, Proc, PyPPL
+import pyppl_jobtime
 config_plugins(pyppl_jobtime)
 from pyppl import console
 
