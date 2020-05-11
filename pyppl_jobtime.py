@@ -1,12 +1,13 @@
 """Job running time statistics for PyPPL"""
 # pylint: disable=invalid-name
 from pathlib import Path
-import cmdy
 from pyppl.plugin import hookimpl
-from pyppl.logger import logger
+from pyppl.logger import Logger
+import cmdy
 
 __version__ = "0.0.3"
 
+logger = Logger(plugin='jobtime')
 
 @hookimpl
 def cli_addcmd(commands):
