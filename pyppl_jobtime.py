@@ -5,7 +5,7 @@ from pyppl.plugin import hookimpl
 from pyppl.logger import Logger
 import cmdy
 
-__version__ = "0.0.3"
+__version__ = "0.0.4"
 
 logger = Logger(plugin='jobtime')
 
